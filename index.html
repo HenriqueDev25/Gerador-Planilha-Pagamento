@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Planilhas de Pagamento</title>
+    <!-- Biblioteca para gerar arquivos .xlsx reais no navegador -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg: #FFFFFF;
+            --fg: #000000;
+            --gray-light: #F4F4F4;
+            --gray-border: #CCCCCC;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        header {
+            border-bottom: 3px solid var(--fg);
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        h1 {
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+        }
+
+        .summary-card {
+            background: var(--fg);
+            color: var(--bg);
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .summary-item label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .summary-item span {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr 1.5fr auto;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        input {
+            padding: 12px;
+            font-size: 14px;
+            border: 2px solid var(--fg);
+            background: var(--bg);
+            color: var(--fg);
+            outline: none;
+            border-radius: 2px;
+        }
+
+        input:focus {
+            background-color: var(--gray-light);
+        }
+
+        button {
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid var(--fg);
+            background: var(--fg);
+            color: var(--bg);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.15s ease;
+            border-radius: 2px;
+        }
+
+        button:hover {
+            background: var(--bg);
+            color: var(--fg);
+        }
+
+        /* CONTAINER COM ROLAGEM */
+        .table-container {
+            max-height: 320px;
+            overflow-y: auto;
+            border: 2px solid var(--fg);
+            margin-bottom: 20px;
+        }
+
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: var(--gray-light);
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: var(--fg);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: var(--fg);
+            color: var(--bg);
+            padding: 12px;
+            text-align: left;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        td {
+            border-bottom: 1px solid var(--gray-border);
+            padding: 12px;
+            font-size: 14px;
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--gray-light);
+        }
+
+        .btn-remove {
+            background: transparent;
+            color: var(--fg);
+            border: 1px solid var(--fg);
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 2px;
+        }
+
+        .btn-remove:hover {
+            background: var(--fg);
+            color: var(--bg);
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+        }
+
+        .btn-export {
+            width: 100%;
+            padding: 15px;
+            font-size: 15px;
+        }
+
+        .btn-clear {
+            background: transparent;
+            color: var(--fg);
+            padding: 15px;
+            font-size: 14px;
+        }
+
+        .btn-clear:hover {
+            background: #ff0000;
+            color: #ffffff;
+            border-color: #ff0000;
+        }
+
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .actions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Gestão de Pagamentos</h1>
+        </header>
+
+        <!-- Resumo -->
+        <div class="summary-card">
+            <div class="summary-item">
+                <label>Total Lançado</label>
+                <span id="totalDisplay">R$ 0,00</span>
+            </div>
+            <div class="summary-item" style="text-align: right;">
+                <label>Qtd. Registros</label>
+                <span id="qtdDisplay">0</span>
+            </div>
+        </div>
+
+        <!-- Formulário de Inserção -->
+        <div class="form-grid">
+            <input type="date" id="data">
+            <input type="number" id="valor" placeholder="Valor (R$)" step="0.01">
+            <input type="text" id="descricao" placeholder="Descrição (opcional)">
+            <button onclick="adicionarPagamento()">Adicionar</button>
+        </div>
+
+        <!-- Tabela com Scroll Interno -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">Data</th>
+                        <th style="width: 25%;">Valor</th>
+                        <th style="width: 40%;">Descrição</th>
+                        <th style="width: 10%; text-align: center;">Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="corpoTabela">
+                    <!-- Registros aparecem aqui -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Ações -->
+        <div class="actions-grid">
+            <button class="btn-export" onclick="exportarExcel()">Exportar Planilha Formatada (.xlsx)</button>
+            <button class="btn-clear" onclick="limparTudo()">Limpar Tudo</button>
+        </div>
+    </div>
+
+    <script>
+        // Carrega os dados salvos no localStorage do dispositivo
+        let pagamentos = JSON.parse(localStorage.getItem('pagamentos_salvos')) || [];
+
+        document.getElementById('data').valueAsDate = new Date();
+
+        function salvarNoDispositivo() {
+            localStorage.setItem('pagamentos_salvos', JSON.stringify(pagamentos));
+        }
+
+        function formatarMoeda(valor) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+        }
+
+        function formatarDataBR(dataISO) {
+            const [ano, mes, dia] = dataISO.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        function adicionarPagamento() {
+            const dataInput = document.getElementById('data');
+            const valorInput = document.getElementById('valor');
+            const descInput = document.getElementById('descricao');
+
+            if (!dataInput.value || !valorInput.value) {
+                alert("Por favor, informe a data e o valor.");
+                return;
+            }
+
+            const pagamento = {
+                id: Date.now(),
+                dataISO: dataInput.value,
+                dataFormatada: formatarDataBR(dataInput.value),
+                valor: parseFloat(valorInput.value),
+                descricao: descInput.value.trim() || 'Sem descrição'
+            };
+
+            pagamentos.push(pagamento);
+            salvarNoDispositivo();
+
+            valorInput.value = '';
+            descInput.value = '';
+            valorInput.focus();
+
+            atualizarInterface();
+        }
+
+        function removerPagamento(id) {
+            pagamentos = pagamentos.filter(p => p.id !== id);
+            salvarNoDispositivo();
+            atualizarInterface();
+        }
+
+        function limparTudo() {
+            if (pagamentos.length === 0) return;
+
+            if (confirm("Tem certeza que deseja apagar todos os registros salvos neste dispositivo?")) {
+                pagamentos = [];
+                salvarNoDispositivo();
+                atualizarInterface();
+            }
+        }
+
+        function atualizarInterface() {
+            const corpo = document.getElementById('corpoTabela');
+            corpo.innerHTML = '';
+
+            let total = 0;
+
+            pagamentos.forEach(p => {
+                total += p.valor;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${p.dataFormatada}</td>
+                    <td><strong>${formatarMoeda(p.valor)}</strong></td>
+                    <td>${p.descricao}</td>
+                    <td style="text-align: center;">
+                        <button class="btn-remove" onclick="removerPagamento(${p.id})">✕</button>
+                    </td>
+                `;
+                corpo.appendChild(tr);
+            });
+
+            document.getElementById('totalDisplay').innerText = formatarMoeda(total);
+            document.getElementById('qtdDisplay').innerText = pagamentos.length;
+        }
+
+        function exportarExcel() {
+            if (pagamentos.length === 0) {
+                alert("Adicione ao menos um pagamento para exportar.");
+                return;
+            }
+
+            const dadosExcel = [
+                ["Data", "Valor (R$)", "Descrição"]
+            ];
+
+            let somaTotal = 0;
+            pagamentos.forEach(p => {
+                dadosExcel.push([p.dataFormatada, p.valor, p.descricao]);
+                somaTotal += p.valor;
+            });
+
+            dadosExcel.push(["TOTAL", somaTotal, ""]);
+
+            const ws = XLSX.utils.aoa_to_sheet(dadosExcel);
+
+            ws['!cols'] = [
+                { wch: 15 },
+                { wch: 18 },
+                { wch: 30 }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Pagamentos");
+
+            XLSX.writeFile(wb, "Relatorio_de_Pagamentos.xlsx");
+        }
+
+        // Renderiza os registros ao carregar a página
+        atualizarInterface();
+    </script>
+</body>
+</html>
