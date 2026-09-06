@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Planilhas de Pagamento</title>
+    <title>Gestão Financeira - Entradas e Saídas</title>
     <!-- Biblioteca para gerar arquivos .xlsx reais no navegador -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -12,6 +12,8 @@
             --fg: #000000;
             --gray-light: #F4F4F4;
             --gray-border: #CCCCCC;
+            --green: #2e7d32;
+            --red: #c62828;
         }
 
         * {
@@ -31,7 +33,7 @@
 
         .container {
             width: 100%;
-            max-width: 700px;
+            max-width: 850px;
         }
 
         header {
@@ -50,6 +52,7 @@
             font-weight: 800;
         }
 
+        /* Cartão de Resumo Financeiro */
         .summary-card {
             background: var(--fg);
             color: var(--bg);
@@ -57,8 +60,16 @@
             border-radius: 4px;
             margin-bottom: 25px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .summary-main {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 15px;
         }
 
         .summary-item label {
@@ -71,18 +82,37 @@
         }
 
         .summary-item span {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: bold;
         }
 
+        .summary-item .valor-entrada { color: #81c784; }
+        .summary-item .valor-saida { color: #e57373; }
+        .summary-item .valor-saldo { color: #ffffff; }
+
+        .accounts-breakdown {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .account-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 3px;
+            font-size: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Form Grid */
         .form-grid {
             display: grid;
-            grid-template-columns: 1fr 1.2fr 1.5fr auto;
+            grid-template-columns: 1fr 1fr 1.2fr 1.2fr 1.5fr auto;
             gap: 10px;
             margin-bottom: 25px;
         }
 
-        input {
+        input, select {
             padding: 12px;
             font-size: 14px;
             border: 2px solid var(--fg);
@@ -92,7 +122,7 @@
             border-radius: 2px;
         }
 
-        input:focus {
+        input:focus, select:focus {
             background-color: var(--gray-light);
         }
 
@@ -115,9 +145,9 @@
             color: var(--fg);
         }
 
-        /* CONTAINER COM ROLAGEM */
+        /* Tabela */
         .table-container {
-            max-height: 320px;
+            max-height: 350px;
             overflow-y: auto;
             border: 2px solid var(--fg);
             margin-bottom: 20px;
@@ -161,6 +191,34 @@
             background-color: var(--gray-light);
         }
 
+        /* Badges e Cores */
+        .badge-tipo {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 2px;
+            color: #fff;
+        }
+
+        .badge-entrada { background-color: var(--green); }
+        .badge-saida { background-color: var(--red); }
+
+        .texto-entrada { color: var(--green); font-weight: bold; }
+        .texto-saida { color: var(--red); font-weight: bold; }
+
+        .badge-conta {
+            display: inline-block;
+            background: var(--gray-light);
+            border: 1px solid var(--fg);
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 2px;
+        }
+
         .btn-remove {
             background: transparent;
             color: var(--fg);
@@ -200,7 +258,10 @@
             border-color: #ff0000;
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
+            .summary-main {
+                grid-template-columns: 1fr;
+            }
             .form-grid {
                 grid-template-columns: 1fr;
             }
@@ -214,61 +275,95 @@
 
     <div class="container">
         <header>
-            <h1>Gestão de Pagamentos</h1>
+            <h1>Fluxo Financeiro</h1>
         </header>
 
-        <!-- Resumo -->
+        <!-- Painel Resumo -->
         <div class="summary-card">
-            <div class="summary-item">
-                <label>Total Lançado</label>
-                <span id="totalDisplay">R$ 0,00</span>
+            <div class="summary-main">
+                <div class="summary-item">
+                    <label>Total Entradas (+)</label>
+                    <span id="totalEntradasDisplay" class="valor-entrada">R$ 0,00</span>
+                </div>
+                <div class="summary-item">
+                    <label>Total A Pagar (-)</label>
+                    <span id="totalSaidasDisplay" class="valor-saida">R$ 0,00</span>
+                </div>
+                <div class="summary-item">
+                    <label>Saldo Resultante</label>
+                    <span id="saldoDisplay" class="valor-saldo">R$ 0,00</span>
+                </div>
             </div>
-            <div class="summary-item" style="text-align: right;">
-                <label>Qtd. Registros</label>
-                <span id="qtdDisplay">0</span>
+            <!-- Totais detalhados por conta -->
+            <div>
+                <label style="font-size: 10px; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; display: block;">Saldos Líquidos por Conta:</label>
+                <div class="accounts-breakdown" id="resumoContas">
+                    <!-- Resumo inserido via JavaScript -->
+                </div>
             </div>
         </div>
 
         <!-- Formulário de Inserção -->
         <div class="form-grid">
             <input type="date" id="data">
+            
+            <select id="tipo">
+                <option value="entrada"> Entrada (+)</option>
+                <option value="saida" selected> A Pagar (-)</option>
+            </select>
+
+            <select id="conta">
+                <option value="" disabled selected>Selecione a Conta</option>
+                <option value="Itaú">Itaú</option>
+                <option value="Bradesco">Bradesco</option>
+                <option value="Banco do Brasil">Banco do Brasil</option>
+                <option value="Santander">Santander</option>
+                <option value="Caixa">Caixa</option>
+                <option value="Nubank">Nubank</option>
+                <option value="Inter">Inter</option>
+                <option value="Dinheiro/Caixa">Dinheiro/Caixa</option>
+                <option value="Outra">Outra Conta</option>
+            </select>
+
             <input type="number" id="valor" placeholder="Valor (R$)" step="0.01">
-            <input type="text" id="descricao" placeholder="Descrição (opcional)">
-            <button onclick="adicionarPagamento()">Adicionar</button>
+            <input type="text" id="descricao" placeholder="Descrição (ex: Luz, Fornecedor)">
+            <button onclick="adicionarLancamento()">Adicionar</button>
         </div>
 
-        <!-- Tabela com Scroll Interno -->
+        <!-- Tabela -->
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 25%;">Data</th>
-                        <th style="width: 25%;">Valor</th>
-                        <th style="width: 40%;">Descrição</th>
+                        <th style="width: 15%;">Data</th>
+                        <th style="width: 15%;">Tipo</th>
+                        <th style="width: 18%;">Conta</th>
+                        <th style="width: 18%;">Valor</th>
+                        <th style="width: 24%;">Descrição</th>
                         <th style="width: 10%; text-align: center;">Ação</th>
                     </tr>
                 </thead>
                 <tbody id="corpoTabela">
-                    <!-- Registros aparecem aqui -->
+                    <!-- Registros inseridos via JavaScript -->
                 </tbody>
             </table>
         </div>
 
-        <!-- Ações -->
+        <!-- Botões de Ação -->
         <div class="actions-grid">
-            <button class="btn-export" onclick="exportarExcel()">Exportar Planilha Formatada (.xlsx)</button>
+            <button class="btn-export" onclick="exportarExcel()">Exportar Relatório (.xlsx)</button>
             <button class="btn-clear" onclick="limparTudo()">Limpar Tudo</button>
         </div>
     </div>
 
     <script>
-        // Carrega os dados salvos no localStorage do dispositivo
-        let pagamentos = JSON.parse(localStorage.getItem('pagamentos_salvos')) || [];
+        // Carrega registros salvos no localStorage
+        let lancamentos = JSON.parse(localStorage.getItem('financeiro_registros')) || [];
 
         document.getElementById('data').valueAsDate = new Date();
 
         function salvarNoDispositivo() {
-            localStorage.setItem('pagamentos_salvos', JSON.stringify(pagamentos));
+            localStorage.setItem('financeiro_registros', JSON.stringify(lancamentos));
         }
 
         function formatarMoeda(valor) {
@@ -280,25 +375,35 @@
             return `${dia}/${mes}/${ano}`;
         }
 
-        function adicionarPagamento() {
+        function adicionarLancamento() {
             const dataInput = document.getElementById('data');
+            const tipoInput = document.getElementById('tipo');
+            const contaInput = document.getElementById('conta');
             const valorInput = document.getElementById('valor');
             const descInput = document.getElementById('descricao');
 
-            if (!dataInput.value || !valorInput.value) {
-                alert("Por favor, informe a data e o valor.");
+            if (!dataInput.value || !valorInput.value || !contaInput.value) {
+                alert("Por favor, preencha a Data, a Conta e o Valor.");
                 return;
             }
 
-            const pagamento = {
+            const valorNum = parseFloat(valorInput.value);
+            if (valorNum <= 0 || isNaN(valorNum)) {
+                alert("Por favor, informe um valor maior que zero.");
+                return;
+            }
+
+            const novoRegistro = {
                 id: Date.now(),
                 dataISO: dataInput.value,
                 dataFormatada: formatarDataBR(dataInput.value),
-                valor: parseFloat(valorInput.value),
+                tipo: tipoInput.value, // 'entrada' ou 'saida'
+                conta: contaInput.value,
+                valor: valorNum,
                 descricao: descInput.value.trim() || 'Sem descrição'
             };
 
-            pagamentos.push(pagamento);
+            lancamentos.push(novoRegistro);
             salvarNoDispositivo();
 
             valorInput.value = '';
@@ -308,17 +413,17 @@
             atualizarInterface();
         }
 
-        function removerPagamento(id) {
-            pagamentos = pagamentos.filter(p => p.id !== id);
+        function removerLancamento(id) {
+            lancamentos = lancamentos.filter(item => item.id !== id);
             salvarNoDispositivo();
             atualizarInterface();
         }
 
         function limparTudo() {
-            if (pagamentos.length === 0) return;
+            if (lancamentos.length === 0) return;
 
-            if (confirm("Tem certeza que deseja apagar todos os registros salvos neste dispositivo?")) {
-                pagamentos = [];
+            if (confirm("Tem certeza que deseja apagar todos os registros acumulados?")) {
+                lancamentos = [];
                 salvarNoDispositivo();
                 atualizarInterface();
             }
@@ -326,62 +431,124 @@
 
         function atualizarInterface() {
             const corpo = document.getElementById('corpoTabela');
+            const resumoContasContainer = document.getElementById('resumoContas');
             corpo.innerHTML = '';
+            resumoContasContainer.innerHTML = '';
 
-            let total = 0;
+            let totalEntradas = 0;
+            let totalSaidas = 0;
+            const balancoPorConta = {};
 
-            pagamentos.forEach(p => {
-                total += p.valor;
+            lancamentos.forEach(item => {
+                // Cálculo de totais
+                if (item.tipo === 'entrada') {
+                    totalEntradas += item.valor;
+                    balancoPorConta[item.conta] = (balancoPorConta[item.conta] || 0) + item.valor;
+                } else {
+                    totalSaidas += item.valor;
+                    balancoPorConta[item.conta] = (balancoPorConta[item.conta] || 0) - item.valor;
+                }
 
+                // Renderiza linha da tabela
                 const tr = document.createElement('tr');
+                const ehEntrada = item.tipo === 'entrada';
+                const sinal = ehEntrada ? '+' : '-';
+                const classeTexto = ehEntrada ? 'texto-entrada' : 'texto-saida';
+                const badgeTipoClass = ehEntrada ? 'badge-entrada' : 'badge-saida';
+                const tipoTexto = ehEntrada ? 'Entrada' : 'A Pagar';
+
                 tr.innerHTML = `
-                    <td>${p.dataFormatada}</td>
-                    <td><strong>${formatarMoeda(p.valor)}</strong></td>
-                    <td>${p.descricao}</td>
+                    <td>${item.dataFormatada}</td>
+                    <td><span class="badge-tipo ${badgeTipoClass}">${tipoTexto}</span></td>
+                    <td><span class="badge-conta">${item.conta}</span></td>
+                    <td class="${classeTexto}">${sinal} ${formatarMoeda(item.valor)}</td>
+                    <td>${item.descricao}</td>
                     <td style="text-align: center;">
-                        <button class="btn-remove" onclick="removerPagamento(${p.id})">✕</button>
+                        <button class="btn-remove" onclick="removerLancamento(${item.id})">✕</button>
                     </td>
                 `;
                 corpo.appendChild(tr);
             });
 
-            document.getElementById('totalDisplay').innerText = formatarMoeda(total);
-            document.getElementById('qtdDisplay').innerText = pagamentos.length;
+            // Atualização dos cards do topo
+            const saldoTotal = totalEntradas - totalSaidas;
+
+            document.getElementById('totalEntradasDisplay').innerText = formatarMoeda(totalEntradas);
+            document.getElementById('totalSaidasDisplay').innerText = formatarMoeda(totalSaidas);
+            
+            const saldoEl = document.getElementById('saldoDisplay');
+            saldoEl.innerText = formatarMoeda(saldoTotal);
+            saldoEl.style.color = saldoTotal >= 0 ? '#81c784' : '#e57373';
+
+            // Renderização do resumo de contas
+            const contas = Object.keys(balancoPorConta);
+            if (contas.length === 0) {
+                resumoContasContainer.innerHTML = '<span style="font-size: 12px; opacity: 0.6;">Nenhum lançamento registrado.</span>';
+            } else {
+                contas.forEach(c => {
+                    const badge = document.createElement('div');
+                    badge.className = 'account-badge';
+                    const valorConta = balancoPorConta[c];
+                    const corSinal = valorConta >= 0 ? '#81c784' : '#e57373';
+                    badge.innerHTML = `${c}: <strong style="color: ${corSinal}">${formatarMoeda(valorConta)}</strong>`;
+                    resumoContasContainer.appendChild(badge);
+                });
+            }
         }
 
         function exportarExcel() {
-            if (pagamentos.length === 0) {
-                alert("Adicione ao menos um pagamento para exportar.");
+            if (lancamentos.length === 0) {
+                alert("Adicione ao menos um lançamento para exportar.");
                 return;
             }
 
             const dadosExcel = [
-                ["Data", "Valor (R$)", "Descrição"]
+                ["Data", "Tipo", "Conta", "Valor (R$)", "Descrição"]
             ];
 
-            let somaTotal = 0;
-            pagamentos.forEach(p => {
-                dadosExcel.push([p.dataFormatada, p.valor, p.descricao]);
-                somaTotal += p.valor;
+            let totalEntradas = 0;
+            let totalSaidas = 0;
+
+            lancamentos.forEach(item => {
+                const tipoTexto = item.tipo === 'entrada' ? 'Entrada' : 'Saída/A Pagar';
+                const valorAjustado = item.tipo === 'entrada' ? item.valor : -item.valor;
+                
+                if (item.tipo === 'entrada') totalEntradas += item.valor;
+                else totalSaidas += item.valor;
+
+                dadosExcel.push([
+                    item.dataFormatada,
+                    tipoTexto,
+                    item.conta,
+                    valorAjustado,
+                    item.descricao
+                ]);
             });
 
-            dadosExcel.push(["TOTAL", somaTotal, ""]);
+            // Linhas de Totais no final do arquivo
+            dadosExcel.push([]);
+            dadosExcel.push(["RESUMO", "", "", "", ""]);
+            dadosExcel.push(["Total Entradas", "", totalEntradas, "", ""]);
+            dadosExcel.push(["Total Saídas", "", totalSaidas, "", ""]);
+            dadosExcel.push(["SALDO LÍQUIDO", "", (totalEntradas - totalSaidas), "", ""]);
 
             const ws = XLSX.utils.aoa_to_sheet(dadosExcel);
 
             ws['!cols'] = [
                 { wch: 15 },
+                { wch: 15 },
+                { wch: 18 },
                 { wch: 18 },
                 { wch: 30 }
             ];
 
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Pagamentos");
+            XLSX.utils.book_append_sheet(wb, ws, "Fluxo Financeiro");
 
-            XLSX.writeFile(wb, "Relatorio_de_Pagamentos.xlsx");
+            XLSX.writeFile(wb, "Relatorio_Financeiro.xlsx");
         }
 
-        // Renderiza os registros ao carregar a página
+        // Renderiza na inicialização
         atualizarInterface();
     </script>
 </body>
