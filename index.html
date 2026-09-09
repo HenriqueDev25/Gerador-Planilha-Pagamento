@@ -14,6 +14,7 @@
             --gray-border: #CCCCCC;
             --green: #2e7d32;
             --red: #c62828;
+            --orange: #ef6c00;
         }
 
         * {
@@ -33,16 +34,13 @@
 
         .container {
             width: 100%;
-            max-width: 850px;
+            max-width: 950px;
         }
 
         header {
             border-bottom: 3px solid var(--fg);
             padding-bottom: 15px;
             margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
         }
 
         h1 {
@@ -66,7 +64,7 @@
 
         .summary-main {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             padding-bottom: 15px;
@@ -82,13 +80,14 @@
         }
 
         .summary-item span {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
         }
 
         .summary-item .valor-entrada { color: #81c784; }
         .summary-item .valor-saida { color: #e57373; }
         .summary-item .valor-saldo { color: #ffffff; }
+        .summary-item .valor-pendente { color: #ffb74d; }
 
         .accounts-breakdown {
             display: flex;
@@ -109,7 +108,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr 1.2fr 1.2fr 1.5fr auto;
             gap: 10px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
 
         input, select {
@@ -145,22 +144,22 @@
             color: var(--fg);
         }
 
-        /* Tabela */
-        .table-container {
-            max-height: 350px;
-            overflow-y: auto;
-            border: 2px solid var(--fg);
-            margin-bottom: 20px;
+        /* Seções de Tabelas */
+        .section-title {
+            font-size: 16px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
         }
 
-        .table-container::-webkit-scrollbar {
-            width: 8px;
-        }
-        .table-container::-webkit-scrollbar-track {
-            background: var(--gray-light);
-        }
-        .table-container::-webkit-scrollbar-thumb {
-            background: var(--fg);
+        .table-container {
+            max-height: 280px;
+            overflow-y: auto;
+            border: 2px solid var(--fg);
+            margin-bottom: 30px;
         }
 
         table {
@@ -174,37 +173,28 @@
             z-index: 10;
             background-color: var(--fg);
             color: var(--bg);
-            padding: 12px;
+            padding: 10px 12px;
             text-align: left;
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
         td {
             border-bottom: 1px solid var(--gray-border);
-            padding: 12px;
-            font-size: 14px;
+            padding: 10px 12px;
+            font-size: 13px;
         }
 
         tr:nth-child(even) {
             background-color: var(--gray-light);
         }
 
-        /* Badges e Cores */
-        .badge-tipo {
-            display: inline-block;
-            padding: 3px 8px;
-            font-size: 11px;
-            font-weight: bold;
-            text-transform: uppercase;
-            border-radius: 2px;
-            color: #fff;
+        tr.concluido {
+            opacity: 0.6;
         }
 
-        .badge-entrada { background-color: var(--green); }
-        .badge-saida { background-color: var(--red); }
-
+        /* Badges e Botões */
         .texto-entrada { color: var(--green); font-weight: bold; }
         .texto-saida { color: var(--red); font-weight: bold; }
 
@@ -217,6 +207,28 @@
             font-weight: bold;
             text-transform: uppercase;
             border-radius: 2px;
+        }
+
+        .btn-status {
+            background: transparent;
+            border: 1px solid var(--fg);
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+
+        .btn-status.pago {
+            background: var(--green);
+            color: #fff;
+            border-color: var(--green);
+        }
+
+        .btn-status.pendente {
+            background: var(--orange);
+            color: #fff;
+            border-color: var(--orange);
         }
 
         .btn-remove {
@@ -260,7 +272,7 @@
 
         @media (max-width: 768px) {
             .summary-main {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
             }
             .form-grid {
                 grid-template-columns: 1fr;
@@ -282,24 +294,26 @@
         <div class="summary-card">
             <div class="summary-main">
                 <div class="summary-item">
-                    <label>Total Entradas (+)</label>
+                    <label>Recebido (+)</label>
                     <span id="totalEntradasDisplay" class="valor-entrada">R$ 0,00</span>
                 </div>
                 <div class="summary-item">
-                    <label>Total A Pagar (-)</label>
+                    <label>Pago (-)</label>
                     <span id="totalSaidasDisplay" class="valor-saida">R$ 0,00</span>
                 </div>
                 <div class="summary-item">
-                    <label>Saldo Resultante</label>
+                    <label>Saldo Efetuado</label>
                     <span id="saldoDisplay" class="valor-saldo">R$ 0,00</span>
+                </div>
+                <div class="summary-item">
+                    <label>A Pagar / Receber (Pendente)</label>
+                    <span id="pendenteDisplay" class="valor-pendente">R$ 0,00</span>
                 </div>
             </div>
             <!-- Totais detalhados por conta -->
             <div>
-                <label style="font-size: 10px; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; display: block;">Saldos Líquidos por Conta:</label>
-                <div class="accounts-breakdown" id="resumoContas">
-                    <!-- Resumo inserido via JavaScript -->
-                </div>
+                <label style="font-size: 10px; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; display: block;">Saldos Realizados por Conta:</label>
+                <div class="accounts-breakdown" id="resumoContas"></div>
             </div>
         </div>
 
@@ -308,8 +322,8 @@
             <input type="date" id="data">
             
             <select id="tipo">
-                <option value="entrada"> Entrada (+)</option>
-                <option value="saida" selected> A Pagar (-)</option>
+                <option value="entrada"> Entrada / Recebimento (+)</option>
+                <option value="saida" selected> Saída / Pagamento (-)</option>
             </select>
 
             <select id="conta">
@@ -326,26 +340,47 @@
             </select>
 
             <input type="number" id="valor" placeholder="Valor (R$)" step="0.01">
-            <input type="text" id="descricao" placeholder="Descrição (ex: Luz, Fornecedor)">
+            <input type="text" id="descricao" placeholder="Descrição (ex: Luz, Cliente X)">
             <button onclick="adicionarLancamento()">Adicionar</button>
         </div>
 
-        <!-- Tabela -->
+        <!-- Tabela 1: Recebimentos -->
+        <div class="section-title" style="color: var(--green);">
+            📥 Recebimentos / Entradas
+        </div>
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th style="width: 15%;">Data</th>
-                        <th style="width: 15%;">Tipo</th>
-                        <th style="width: 18%;">Conta</th>
-                        <th style="width: 18%;">Valor</th>
-                        <th style="width: 24%;">Descrição</th>
+                        <th style="width: 20%;">Conta</th>
+                        <th style="width: 20%;">Valor</th>
+                        <th style="width: 25%;">Descrição</th>
+                        <th style="width: 10%; text-align: center;">Status</th>
                         <th style="width: 10%; text-align: center;">Ação</th>
                     </tr>
                 </thead>
-                <tbody id="corpoTabela">
-                    <!-- Registros inseridos via JavaScript -->
-                </tbody>
+                <tbody id="tabelaEntradas"></tbody>
+            </table>
+        </div>
+
+        <!-- Tabela 2: Pagamentos -->
+        <div class="section-title" style="color: var(--red);">
+            📤 Pagamentos / Saídas
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Data</th>
+                        <th style="width: 20%;">Conta</th>
+                        <th style="width: 20%;">Valor</th>
+                        <th style="width: 25%;">Descrição</th>
+                        <th style="width: 10%; text-align: center;">Status</th>
+                        <th style="width: 10%; text-align: center;">Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaSaidas"></tbody>
             </table>
         </div>
 
@@ -357,7 +392,6 @@
     </div>
 
     <script>
-        // Carrega registros salvos no localStorage
         let lancamentos = JSON.parse(localStorage.getItem('financeiro_registros')) || [];
 
         document.getElementById('data').valueAsDate = new Date();
@@ -400,7 +434,8 @@
                 tipo: tipoInput.value, // 'entrada' ou 'saida'
                 conta: contaInput.value,
                 valor: valorNum,
-                descricao: descInput.value.trim() || 'Sem descrição'
+                descricao: descInput.value.trim() || 'Sem descrição',
+                efetuado: false // Inicia como pendente
             };
 
             lancamentos.push(novoRegistro);
@@ -410,6 +445,17 @@
             descInput.value = '';
             valorInput.focus();
 
+            atualizarInterface();
+        }
+
+        function toggleStatus(id) {
+            lancamentos = lancamentos.map(item => {
+                if (item.id === id) {
+                    return { ...item, efetuado: !item.efetuado };
+                }
+                return item;
+            });
+            salvarNoDispositivo();
             atualizarInterface();
         }
 
@@ -430,60 +476,93 @@
         }
 
         function atualizarInterface() {
-            const corpo = document.getElementById('corpoTabela');
+            const tbodyEntradas = document.getElementById('tabelaEntradas');
+            const tbodySaidas = document.getElementById('tabelaSaidas');
             const resumoContasContainer = document.getElementById('resumoContas');
-            corpo.innerHTML = '';
+
+            tbodyEntradas.innerHTML = '';
+            tbodySaidas.innerHTML = '';
             resumoContasContainer.innerHTML = '';
 
-            let totalEntradas = 0;
-            let totalSaidas = 0;
+            let totalEntradasPagas = 0;
+            let totalSaidasPagas = 0;
+            let totalPendente = 0;
             const balancoPorConta = {};
 
             lancamentos.forEach(item => {
-                // Cálculo de totais
-                if (item.tipo === 'entrada') {
-                    totalEntradas += item.valor;
-                    balancoPorConta[item.conta] = (balancoPorConta[item.conta] || 0) + item.valor;
-                } else {
-                    totalSaidas += item.valor;
-                    balancoPorConta[item.conta] = (balancoPorConta[item.conta] || 0) - item.valor;
-                }
-
-                // Renderiza linha da tabela
-                const tr = document.createElement('tr');
                 const ehEntrada = item.tipo === 'entrada';
                 const sinal = ehEntrada ? '+' : '-';
                 const classeTexto = ehEntrada ? 'texto-entrada' : 'texto-saida';
-                const badgeTipoClass = ehEntrada ? 'badge-entrada' : 'badge-saida';
-                const tipoTexto = ehEntrada ? 'Entrada' : 'A Pagar';
+                
+                // Cálculo de Totais
+                if (item.efetuado) {
+                    if (ehEntrada) {
+                        totalEntradasPagas += item.valor;
+                        balancoPorConta[item.conta] = (balancoPorConta[item.conta] || 0) + item.valor;
+                    } else {
+                        totalSaidasPagas += item.valor;
+                        balancoPorConta[item.conta] = (balancoPorConta[item.conta] || 0) - item.valor;
+                    }
+                } else {
+                    // Soma pendentes (entradas como positivo, saídas como negativo no saldo pendente)
+                    totalPendente += ehEntrada ? item.valor : -item.valor;
+                }
+
+                // Renderiza Linha
+                const tr = document.createElement('tr');
+                if (item.efetuado) tr.classList.add('concluido');
+
+                const statusTexto = item.efetuado 
+                    ? (ehEntrada ? '✓ Recebido' : '✓ Pago') 
+                    : '⏳ Pendente';
+                
+                const btnClasse = item.efetuado ? 'pago' : 'pendente';
 
                 tr.innerHTML = `
                     <td>${item.dataFormatada}</td>
-                    <td><span class="badge-tipo ${badgeTipoClass}">${tipoTexto}</span></td>
                     <td><span class="badge-conta">${item.conta}</span></td>
                     <td class="${classeTexto}">${sinal} ${formatarMoeda(item.valor)}</td>
                     <td>${item.descricao}</td>
                     <td style="text-align: center;">
+                        <button class="btn-status ${btnClasse}" onclick="toggleStatus(${item.id})">${statusTexto}</button>
+                    </td>
+                    <td style="text-align: center;">
                         <button class="btn-remove" onclick="removerLancamento(${item.id})">✕</button>
                     </td>
                 `;
-                corpo.appendChild(tr);
+
+                if (ehEntrada) {
+                    tbodyEntradas.appendChild(tr);
+                } else {
+                    tbodySaidas.appendChild(tr);
+                }
             });
 
-            // Atualização dos cards do topo
-            const saldoTotal = totalEntradas - totalSaidas;
+            // Mensagens para tabelas vazias
+            if (tbodyEntradas.children.length === 0) {
+                tbodyEntradas.innerHTML = '<tr><td colspan="6" style="text-align:center; opacity:0.6;">Nenhum recebimento registrado.</td></tr>';
+            }
+            if (tbodySaidas.children.length === 0) {
+                tbodySaidas.innerHTML = '<tr><td colspan="6" style="text-align:center; opacity:0.6;">Nenhum pagamento registrado.</td></tr>';
+            }
 
-            document.getElementById('totalEntradasDisplay').innerText = formatarMoeda(totalEntradas);
-            document.getElementById('totalSaidasDisplay').innerText = formatarMoeda(totalSaidas);
+            // Atualização dos Cards
+            const saldoTotal = totalEntradasPagas - totalSaidasPagas;
+
+            document.getElementById('totalEntradasDisplay').innerText = formatarMoeda(totalEntradasPagas);
+            document.getElementById('totalSaidasDisplay').innerText = formatarMoeda(totalSaidasPagas);
             
             const saldoEl = document.getElementById('saldoDisplay');
             saldoEl.innerText = formatarMoeda(saldoTotal);
             saldoEl.style.color = saldoTotal >= 0 ? '#81c784' : '#e57373';
 
-            // Renderização do resumo de contas
+            const pendenteEl = document.getElementById('pendenteDisplay');
+            pendenteEl.innerText = formatarMoeda(totalPendente);
+
+            // Resumo de Contas
             const contas = Object.keys(balancoPorConta);
             if (contas.length === 0) {
-                resumoContasContainer.innerHTML = '<span style="font-size: 12px; opacity: 0.6;">Nenhum lançamento registrado.</span>';
+                resumoContasContainer.innerHTML = '<span style="font-size: 12px; opacity: 0.6;">Nenhum valor efetivado ainda.</span>';
             } else {
                 contas.forEach(c => {
                     const badge = document.createElement('div');
@@ -503,43 +582,47 @@
             }
 
             const dadosExcel = [
-                ["Data", "Tipo", "Conta", "Valor (R$)", "Descrição"]
+                ["Data", "Tipo", "Conta", "Valor (R$)", "Descrição", "Status"]
             ];
 
             let totalEntradas = 0;
             let totalSaidas = 0;
 
             lancamentos.forEach(item => {
-                const tipoTexto = item.tipo === 'entrada' ? 'Entrada' : 'Saída/A Pagar';
+                const tipoTexto = item.tipo === 'entrada' ? 'Recebimento' : 'Pagamento';
+                const statusTexto = item.efetuado ? (item.tipo === 'entrada' ? 'Recebido' : 'Pago') : 'Pendente';
                 const valorAjustado = item.tipo === 'entrada' ? item.valor : -item.valor;
                 
-                if (item.tipo === 'entrada') totalEntradas += item.valor;
-                else totalSaidas += item.valor;
+                if (item.efetuado) {
+                    if (item.tipo === 'entrada') totalEntradas += item.valor;
+                    else totalSaidas += item.valor;
+                }
 
                 dadosExcel.push([
                     item.dataFormatada,
                     tipoTexto,
                     item.conta,
                     valorAjustado,
-                    item.descricao
+                    item.descricao,
+                    statusTexto
                 ]);
             });
 
-            // Linhas de Totais no final do arquivo
             dadosExcel.push([]);
-            dadosExcel.push(["RESUMO", "", "", "", ""]);
-            dadosExcel.push(["Total Entradas", "", totalEntradas, "", ""]);
-            dadosExcel.push(["Total Saídas", "", totalSaidas, "", ""]);
-            dadosExcel.push(["SALDO LÍQUIDO", "", (totalEntradas - totalSaidas), "", ""]);
+            dadosExcel.push(["RESUMO (REALIZADO)", "", "", "", "", ""]);
+            dadosExcel.push(["Total Recebido", "", totalEntradas, "", "", ""]);
+            dadosExcel.push(["Total Pago", "", totalSaidas, "", "", ""]);
+            dadosExcel.push(["SALDO LÍQUIDO", "", (totalEntradas - totalSaidas), "", "", ""]);
 
             const ws = XLSX.utils.aoa_to_sheet(dadosExcel);
 
             ws['!cols'] = [
-                { wch: 15 },
+                { wch: 12 },
                 { wch: 15 },
                 { wch: 18 },
-                { wch: 18 },
-                { wch: 30 }
+                { wch: 15 },
+                { wch: 30 },
+                { wch: 12 }
             ];
 
             const wb = XLSX.utils.book_new();
@@ -548,7 +631,6 @@
             XLSX.writeFile(wb, "Relatorio_Financeiro.xlsx");
         }
 
-        // Renderiza na inicialização
         atualizarInterface();
     </script>
 </body>
